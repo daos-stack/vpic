@@ -71,6 +71,8 @@ vpic for IntelMPI
 %build
 mkdir impi
 pushd impi
+module avail
+echo $MODULEPATH
 %module_load
 
 %{cmake} -DCMAKE_INSTALL_PREFIX=%{mpi_dir} \
