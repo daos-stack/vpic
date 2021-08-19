@@ -59,8 +59,8 @@ field solvers.
 
 %package impi
 Summary: vpic for IntelMPI
-BuildRequires: intel-oneapi-mpi-devel
-Requires: intel-oneapi-mpi-devel
+BuildRequires: intel-oneapi-mpi
+Requires: intel-oneapi-mpi
 
 %description impi
 vpic for IntelMPI
