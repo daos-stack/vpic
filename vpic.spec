@@ -36,7 +36,7 @@ Summary: A Multi-purpose, Application-Centric, Scalable I/O Proxy Application
 
 License: GPL
 URL:     https://github.com/LANL/vpic
-Source0: %{name}-%{version}.tar.gz
+Source0: https://github.com/LANL/%{name}/archive/%{version}.tar.gz
 
 %if (0%{?suse_version} >= 1500)
 BuildRequires: cmake >= 3.1
