@@ -1,11 +1,31 @@
-%global oneapi_dir /opt/intel/oneapi
+%global with_mpich 1
 
-%global module_load() MODULEPATH=%{oneapi_dir}/modulefiles module load mpi/latest
-%global mpi_dir %{oneapi_dir}/mpi/latest
+%if (0%{?rhel} >= 8)
+%global with_openmpi 1
+%global with_openmpi3 0
+%else
+%global with_openmpi 0
+%global with_openmpi3 1
+%endif
+
+
+%if %{with_mpich}
+%global mpi_list mpich
+%endif
+%if %{with_openmpi}
+%global mpi_list %{?mpi_list} openmpi
+%endif
+%if %{with_openmpi3}
+%global mpi_list %{?mpi_list} openmpi3
+%endif
 
 %if (0%{?suse_version} >= 1500)
+%global module_load() if [ "%{1}" == "openmpi3" ]; then MODULEPATH=/usr/share/modules module load gnu-openmpi; else MODULEPATH=/usr/share/modules module load gnu-%{1}; fi
+%global mpi_libdir %{_libdir}/mpi/gcc
 %global cmake cmake
 %else
+%global module_load() module load mpi/%{1}-%{_arch}
+%global mpi_libdir %{_libdir}
 %global cmake cmake3
 %endif
 
@@ -16,7 +36,7 @@ Summary: A Multi-purpose, Application-Centric, Scalable I/O Proxy Application
 
 License: GPL
 URL:     https://github.com/LANL/vpic
-Source0: https://github.com/LANL/%{name}/archive/%{version}.tar.gz
+Source0: %{name}-%{version}.tar.gz
 
 %if (0%{?suse_version} >= 1500)
 BuildRequires: cmake >= 3.1
@@ -25,8 +45,6 @@ BuildRequires: lua-lmod
 BuildRequires: cmake3 >= 3.1
 BuildRequires: Lmod
 %endif
-BuildRequires: intel-oneapi-mpi-devel
-Requires: intel-oneapi-mpi
 
 %description
 VPIC is a general purpose particle-in-cell simulation code for modeling kinetic
@@ -56,46 +74,84 @@ VPIC employ low-order particles on rectilinear meshes,. a framework exists to
 treat higher-order particles and curvilinear meshes, as well as more advanced
 field solvers.
 
+%if %{with_mpich}
+%package mpich
+Summary: vpic for MPICH
+BuildRequires: mpich-devel%{?_isa}
+Requires: %{name}%{?_isa} = %{version}-%{release}
 
-%package impi
-Summary: vpic for IntelMPI
-BuildRequires: intel-oneapi-mpi-devel
-Requires: intel-oneapi-mpi-devel
+%description mpich
+vpic for MPICH
+%endif
 
-%description impi
-vpic for IntelMPI
+%if %{with_openmpi}
+%package openmpi
+Summary: vpic for OpenMPI
+BuildRequires: openmpi-devel%{?_isa}
+Requires: %{name}%{?_isa} = %{version}-%{release}
+
+%description openmpi
+vpic for OpenMPI
+%endif
+
+%if %{with_openmpi3}
+%package openmpi3
+Summary: vpic for OpenMPI 3
+BuildRequires: openmpi3-devel%{?_isa}
+Requires: %{name}%{?_isa} = %{version}-%{release}
+
+%description openmpi3
+vpic for OpenMPI 3
+%endif
+
 
 %prep
 %setup -q
 
 %build
-mkdir impi
-pushd impi
-%module_load
-
-%{cmake} -DCMAKE_INSTALL_PREFIX=%{mpi_dir} \
-cmake   -DCMAKE_BUILD_TYPE=Release         \
-        -DENABLE_INTEGRATED_TESTS=ON       \
-        -DCMAKE_C_FLAGS="-rdynamic"        \
-        -DCMAKE_CXX_FLAGS="-rdynamic"      \
-        ..
-%{make_build}
-module purge
-pushd bin
-# create the harris.Linux binary
-./vpic ../../sample/harris
-popd
-popd
+for mpi in %{?mpi_list}; do
+  mkdir $mpi
+  pushd $mpi
+  %module_load $mpi
+  %{cmake} -DCMAKE_INSTALL_PREFIX=%{mpi_libdir}/$mpi/bin \
+          -DCMAKE_BUILD_TYPE=Release                     \
+          -DENABLE_INTEGRATED_TESTS=ON                   \
+          -DCMAKE_C_FLAGS="-rdynamic"                    \
+          -DCMAKE_CXX_FLAGS="-rdynamic"                  \
+          ..
+  %{make_build}
+  module purge
+  pushd bin
+  # create the harris.Linux binary
+  ./vpic ../../sample/harris
+  popd
+  popd
+done
 
 %install
-%module_load
-%{make_install} -C impi
-module purge
-# install the harris.Linux binary
-install -m 0755 impi/bin/harris.Linux ${RPM_BUILD_ROOT}%{mpi_dir}/bin
+for mpi in %{?mpi_list}; do
+  %module_load $mpi
+  %{make_install} -C $mpi
+  module purge
+  # install the harris.Linux binary
+  install -m 0755 $mpi/bin/harris.Linux ${RPM_BUILD_ROOT}%{mpi_libdir}/$mpi/bin
+done
 
-%files impi
-%{mpi_dir}/*
+%files
+%license LICENSE
+%if %{with_mpich}
+%files mpich
+%{mpi_libdir}/mpich/bin/*
+%endif
+%if %{with_openmpi}
+%files openmpi
+%{mpi_libdir}/openmpi/bin/*
+%endif
+%if %{with_openmpi3}
+%files openmpi3
+%{mpi_libdir}/openmpi3/bin/*
+%endif
+
 
 %changelog
 * Fri Jun 18 2021 Mauren Jean <maureen.jean@intel.com> - 1.2-0
