@@ -1,12 +1,10 @@
 %if (0%{?suse_version} >= 1500)
-%global module_load() MODULEPATH=/usr/share/modules module load gnu-mpich; fi
-%else
-%global module_load() module load mpi/mpich-%{_arch}
-%endif
-
-%if (0%{?suse_version} >= 1500)
+%global module_load() MODULEPATH=/usr/share/modules module load gnu-mpich
+%global mpi_libdir %{_libdir}/mpi/gcc
 %global cmake cmake
 %else
+%global module_load() module load mpi/mpich-%{_arch}
+%global mpi_libdir %{_libdir}
 %global cmake cmake3
 %endif
 
@@ -57,22 +55,15 @@ treat higher-order particles and curvilinear meshes, as well as more advanced
 field solvers.
 
 %if (0%{?suse_version} >= 1500)
-%global mpi_libdir %{_libdir}/mpi/gcc
-%global mpi_lib_ext lib64
-%global mpi_includedir %{_libdir}/mpi/gcc
-%global mpi_include_ext /include
+%global mpi_libdir %{_libdir}/mpi/gcc/mpich
 %else
-%global mpi_libdir %{_libdir}
-%global mpi_lib_ext lib
-%global mpi_includedir  %{_includedir}
-%global mpi_include_ext -%{_arch}
+%global mpi_libdir %{_libdir}/mpich
 %endif
 
 %package mpich
 Summary: vpic with MPICH
 BuildRequires: mpich-devel
 Provides: %{name}-mpich2 = %{version}-%{release}
-Obsoletes: %{name}-mpich2 < 1.8.11-4
 
 %description mpich
 VPIC for MPICH
@@ -88,8 +79,8 @@ module avail
 echo $MODULEPATH
 %module_load
 
-%{cmake} -DCMAKE_INSTALL_PREFIX=%{mpi_dir} \
-cmake   -DCMAKE_BUILD_TYPE=Release         \
+%{cmake} -DCMAKE_INSTALL_PREFIX=%{mpi_libdir} \
+        -DCMAKE_BUILD_TYPE=Release         \
         -DENABLE_INTEGRATED_TESTS=ON       \
         -DCMAKE_C_FLAGS="-rdynamic"        \
         -DCMAKE_CXX_FLAGS="-rdynamic"      \
@@ -109,10 +100,10 @@ echo $MODULEPATH
 %{make_install} -C mpich
 module purge
 # install the harris.Linux binary
-install -m 0755 mpich/bin/harris.Linux ${RPM_BUILD_ROOT}%{mpi_dir}/bin
+install -m 0755 mpich/bin/harris.Linux ${RPM_BUILD_ROOT}%{mpi_libdir}/bin
 
 %files mpich
-%{mpi_dir}/*
+%{mpi_libdir}/bin/*
 
 %changelog
 * Fri Jun 18 2021 Mauren Jean <maureen.jean@intel.com> - 1.2-0
