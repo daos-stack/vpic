@@ -1,7 +1,8 @@
-%global oneapi_dir /opt/intel/oneapi
-%global module_setup() %{oneapi_dir}/modulefiles-setup.sh
-%global module_load() MODULEPATH=%{oneapi_dir}/modulefiles module load mpi/latest
-%global mpi_dir %{oneapi_dir}/mpi/latest
+%if (0%{?suse_version} >= 1500)
+%global module_load() MODULEPATH=/usr/share/modules module load gnu-mpich; fi
+%else
+%global module_load() module load mpi/mpich-%{_arch}
+%endif
 
 %if (0%{?suse_version} >= 1500)
 %global cmake cmake
@@ -25,8 +26,7 @@ BuildRequires: lua-lmod
 BuildRequires: cmake3 >= 3.1
 BuildRequires: Lmod
 %endif
-BuildRequires: intel-oneapi-mpi
-Requires: intel-oneapi-mpi
+
 
 %description
 VPIC is a general purpose particle-in-cell simulation code for modeling kinetic
@@ -56,21 +56,34 @@ VPIC employ low-order particles on rectilinear meshes,. a framework exists to
 treat higher-order particles and curvilinear meshes, as well as more advanced
 field solvers.
 
+%if (0%{?suse_version} >= 1500)
+%global mpi_libdir %{_libdir}/mpi/gcc
+%global mpi_lib_ext lib64
+%global mpi_includedir %{_libdir}/mpi/gcc
+%global mpi_include_ext /include
+%else
+%global mpi_libdir %{_libdir}
+%global mpi_lib_ext lib
+%global mpi_includedir  %{_includedir}
+%global mpi_include_ext -%{_arch}
+%endif
 
-%package impi
-Summary: vpic for IntelMPI
-BuildRequires: intel-oneapi-mpi
-Requires: intel-oneapi-mpi
+%package mpich
+Summary: vpic with MPICH
+BuildRequires: mpich-devel
+Provides: %{name}-mpich2 = %{version}-%{release}
+Obsoletes: %{name}-mpich2 < 1.8.11-4
 
-%description impi
-vpic for IntelMPI
+%description mpich
+VPIC for MPICH
+
 
 %prep
 %setup -q
 
 %build
-mkdir impi
-pushd impi
+mkdir mpich
+pushd mpich
 module avail
 echo $MODULEPATH
 %module_load
@@ -93,12 +106,12 @@ popd
 module avail
 echo $MODULEPATH
 %module_load
-%{make_install} -C impi
+%{make_install} -C mpich
 module purge
 # install the harris.Linux binary
-install -m 0755 impi/bin/harris.Linux ${RPM_BUILD_ROOT}%{mpi_dir}/bin
+install -m 0755 mpich/bin/harris.Linux ${RPM_BUILD_ROOT}%{mpi_dir}/bin
 
-%files impi
+%files mpich
 %{mpi_dir}/*
 
 %changelog
