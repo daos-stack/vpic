@@ -1,5 +1,4 @@
 %global oneapi_dir /opt/intel/oneapi
-
 %global module_setup() %{oneapi_dir}/modulefiles-setup.sh
 %global module_load() MODULEPATH=%{oneapi_dir}/modulefiles module load mpi/latest
 %global mpi_dir %{oneapi_dir}/mpi/latest
@@ -72,7 +71,6 @@ vpic for IntelMPI
 %build
 mkdir impi
 pushd impi
-%module_setup
 module avail
 echo $MODULEPATH
 %module_load
@@ -92,7 +90,6 @@ popd
 popd
 
 %install
-%module_setup
 module avail
 echo $MODULEPATH
 %module_load
