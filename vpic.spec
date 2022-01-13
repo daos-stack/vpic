@@ -104,6 +104,9 @@ install -m 0755 mpich/bin/harris.Linux ${RPM_BUILD_ROOT}%{mpi_libdir}/bin
 
 %files mpich
 %{mpi_libdir}/bin/*
+%{mpi_libdir}/include/*
+%{mpi_libdir}/share/*
+%{mpi_libdir}/lib/*
 
 %changelog
 * Fri Jun 18 2021 Mauren Jean <maureen.jean@intel.com> - 1.2-0
